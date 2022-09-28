@@ -20,4 +20,10 @@ public class XBoxXstsResponse extends MicrosoftErrorResponse {
 
     @SerializedName("DisplayClaims")
     XBoxXstsResponseDisplayClaims displayClaims;
+
+    String previousUhs;
+
+    public void setPreviousUhs(String previousUhs) {
+        this.previousUhs = previousUhs;
+    }
 }
