@@ -1,2 +1,6 @@
 rootProject.name = 'INUMincraftLauncher'
+include 'Client'
+include 'Client'
+include 'Core'
+include 'Server'
 
