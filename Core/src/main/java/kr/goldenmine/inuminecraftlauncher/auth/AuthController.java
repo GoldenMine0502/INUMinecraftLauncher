@@ -22,27 +22,27 @@ import java.util.concurrent.CompletableFuture;
 public class AuthController {
     public static CompletableFuture<String> future = new CompletableFuture<>();
 
-    @RequestMapping(
-            value = "/authorization",
-            method = RequestMethod.GET
-    )
-    public ResponseEntity<?> authorization(
-            final HttpServletRequest req,
-            final HttpServletResponse res,
-            @RequestParam Map<String,String> allRequestParams) throws Exception {
-
-        String code = allRequestParams.get("code");
-        String state = allRequestParams.get("state");
-        String error = allRequestParams.get("error");
-        String errorDescription = allRequestParams.get("error_description");
-
-        System.out.println(code);
-        System.out.println(state);
-        System.out.println(error);
-        System.out.println(errorDescription);
-
-        return ResponseEntity.ok("");
-    }
+//    @RequestMapping(
+//            value = "/authorization",
+//            method = RequestMethod.GET
+//    )
+//    public ResponseEntity<?> authorization(
+//            final HttpServletRequest req,
+//            final HttpServletResponse res,
+//            @RequestParam Map<String,String> allRequestParams) throws Exception {
+//
+//        String code = allRequestParams.get("code");
+//        String state = allRequestParams.get("state");
+//        String error = allRequestParams.get("error");
+//        String errorDescription = allRequestParams.get("error_description");
+//
+//        System.out.println(code);
+//        System.out.println(state);
+//        System.out.println(error);
+//        System.out.println(errorDescription);
+//
+//        return ResponseEntity.ok("");
+//    }
 
     @RequestMapping(
             value = "/microsoft",

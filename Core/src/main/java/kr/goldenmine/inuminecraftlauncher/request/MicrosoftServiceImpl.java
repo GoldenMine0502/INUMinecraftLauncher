@@ -71,14 +71,13 @@ public class MicrosoftServiceImpl {
     public static synchronized MicrosoftTokenResponse refresh(String refreshToken) throws IOException {
         String scope = "XboxLive.signin offline_access";
 
-        Response<MicrosoftTokenResponse> tokenResponse = RetrofitServices.MICROSOFT_SERVICE.requestAccessToken(
+        Response<MicrosoftTokenResponse> tokenResponse = RetrofitServices.MICROSOFT_SERVICE.requestRefreshToken(
                 "consumers",
                 clientId,
                 scope,
-                "http://localhost:20200/auth/microsoft",
-                "authorization_code",
-                clientSecret,
-                refreshToken
+                refreshToken,
+                "refresh_token",
+                clientSecret
         ).execute();
 
         return tokenResponse.body();

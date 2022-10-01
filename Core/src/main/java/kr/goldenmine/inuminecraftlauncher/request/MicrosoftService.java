@@ -49,9 +49,9 @@ public interface MicrosoftService {
             @Field("client_id") String clientId,
             @Field("scope") String scope,
 //            @Query("response_type") String responseType,
-            @Field("redirect_uri") String redirectURI,
-            @Field("client_secret") String clientSecret,
-            @Field("refresh_token") String refreshToken
+            @Field("refresh_token") String refreshToken,
+            @Field("grant_type") String grantType,
+            @Field("client_secret") String clientSecret
 //            @Field("code_challenge") String codeChallenge,
 //            @Field("code_challenge_method") String codeChallengeMethod
     );
