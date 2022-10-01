@@ -21,6 +21,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
@@ -29,7 +30,7 @@ import java.util.function.Supplier;
 public class MicrosoftServiceImpl {
     public static String clientId;
     public static String clientSecret;
-    public static String state = "12345";
+    public static String state = UUID.randomUUID().toString();
 
     public static void loadFromFile(File file) {
         try(BufferedReader reader = new BufferedReader(new FileReader(file))) {
@@ -67,6 +68,22 @@ public class MicrosoftServiceImpl {
         }
     }
 
+    public static synchronized MicrosoftTokenResponse refresh(String refreshToken) throws IOException {
+        String scope = "XboxLive.signin offline_access";
+
+        Response<MicrosoftTokenResponse> tokenResponse = RetrofitServices.MICROSOFT_SERVICE.requestAccessToken(
+                "consumers",
+                clientId,
+                scope,
+                "http://localhost:20200/auth/microsoft",
+                "authorization_code",
+                clientSecret,
+                refreshToken
+        ).execute();
+
+        return tokenResponse.body();
+    }
+
     public static synchronized MicrosoftTokenResponse firstLogin(String id, String password) throws InterruptedException, ExecutionException, IOException {
         AuthController.future = new CompletableFuture<>();
         String scope = "XboxLive.signin offline_access";
@@ -86,6 +103,8 @@ public class MicrosoftServiceImpl {
         driver.get(url);
         Thread.sleep(1000L);
 
+        Runtime.getRuntime().addShutdownHook(new Thread(driver::quit));
+        
         try {
             WebElement idElement = LoopUtil.waitWhile(() -> driver.findElements(By.tagName("input")).stream().filter(it -> "email".equals(it.getAttribute("type"))).findFirst(), 1000L, -1).get();
 
@@ -124,9 +143,11 @@ public class MicrosoftServiceImpl {
 
             log.info(tokenResponse.body().toString());
 
+            tokenResponse.body().setCode(code);
+
             return tokenResponse.body();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error(ex.getMessage());
         } finally {
             driver.quit();
         }

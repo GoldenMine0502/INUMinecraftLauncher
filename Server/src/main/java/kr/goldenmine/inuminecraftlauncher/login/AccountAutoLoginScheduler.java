@@ -73,35 +73,54 @@ public class AccountAutoLoginScheduler extends Thread {
         for(MicrosoftAccount microsoftAccount : list) {
             try {
                 log.info("try to login " + microsoftAccount.getEmail());
-                MicrosoftTokenResponse microsoftTokenResponse = LoopUtil.waitWhile(() -> {
-                    try {
-                        return Optional.of(MicrosoftServiceImpl.firstLogin(microsoftAccount.getEmail(), microsoftAccount.getPassword()));
-                    } catch (Exception ex) {
-                        log.warn(ex.getMessage());
-                        return Optional.empty();
+                MicrosoftTokenResponse microsoftTokenResponse;
+
+                if(microsoftAccount.getServerJoined() == 0 && microsoftAccount.getTokenExpire() + sleepInMS >= System.currentTimeMillis()) {
+                    if(microsoftAccount.getRecentRefreshToken() != null) {
+                        microsoftTokenResponse = LoopUtil.waitWhile(() -> {
+                            try {
+                                return Optional.of(MicrosoftServiceImpl.refresh(microsoftAccount.getRecentRefreshToken()));
+                            } catch (Exception ex) {
+                                log.warn(ex.getMessage());
+                                return Optional.empty();
+                            }
+                        }, 1000L, 5).get();
+                        log.info("refreshing...");
+                    } else {
+                        microsoftTokenResponse = LoopUtil.waitWhile(() -> {
+                            try {
+                                return Optional.of(MicrosoftServiceImpl.firstLogin(microsoftAccount.getEmail(), microsoftAccount.getPassword()));
+                            } catch (Exception ex) {
+                                log.warn(ex.getMessage());
+                                return Optional.empty();
+                            }
+                        }, 1000L, 5).get();
                     }
-                }, 1000L, 5).get();
 
-                XBoxXstsResponse xBoxResponse = LoopUtil.waitWhile(() -> {
-                    try {
-                        return Optional.of(MicrosoftServiceImpl.loginXbox(microsoftTokenResponse.getAccessToken()));
-                    } catch (IOException e) {
-                        log.warn(e.getMessage());
-                        return Optional.empty();
-                    }
-                }, 1000L, 5).get();
+                    XBoxXstsResponse xBoxResponse = LoopUtil.waitWhile(() -> {
+                        try {
+                            return Optional.of(MicrosoftServiceImpl.loginXbox(microsoftTokenResponse.getAccessToken()));
+                        } catch (IOException e) {
+                            log.warn(e.getMessage());
+                            return Optional.empty();
+                        }
+                    }, 1000L, 5).get();
 
-                MinecraftProfileResponse minecraftProfileResponse = MicrosoftServiceImpl.getMinecraftProfile(xBoxResponse.getToken(), xBoxResponse.getPreviousUhs());
+                    MinecraftProfileResponse minecraftProfileResponse = MicrosoftServiceImpl.getMinecraftProfile(xBoxResponse.getToken(), xBoxResponse.getPreviousUhs());
 
-                microsoftAccount.setTokenExpire(System.currentTimeMillis() + microsoftTokenResponse.getExpiresIn() * 1000L);
-                microsoftAccount.setRecentAccessToken(microsoftTokenResponse.getAccessToken());
-                microsoftAccount.setRecentRefreshToken(microsoftTokenResponse.getRefreshToken());
-                microsoftAccount.setRecentProfileToken(xBoxResponse.getToken());
-                microsoftAccount.setMinecraftUsername(minecraftProfileResponse.getName());
-                microsoftAccount.setMinecraftUUID(minecraftProfileResponse.getId().toString());
+                    microsoftAccount.setTokenExpire(System.currentTimeMillis() + microsoftTokenResponse.getExpiresIn() * 1000L);
+                    microsoftAccount.setRecentCode(microsoftTokenResponse.getCode());
+                    microsoftAccount.setRecentAccessToken(microsoftTokenResponse.getAccessToken());
+                    microsoftAccount.setRecentRefreshToken(microsoftTokenResponse.getRefreshToken());
+                    microsoftAccount.setRecentProfileToken(xBoxResponse.getToken());
+                    microsoftAccount.setMinecraftUsername(minecraftProfileResponse.getName());
+                    microsoftAccount.setMinecraftUuid(minecraftProfileResponse.getId().toString());
 
-                microsoftAccountService.save(microsoftAccount);
-                log.info("logged " + microsoftAccount.getEmail() + ", " + microsoftAccount.getRecentProfileToken());
+                    microsoftAccountService.save(microsoftAccount);
+                    log.info("logged " + microsoftAccount.getEmail() + ", " + microsoftAccount.getRecentProfileToken());
+                } else {
+                    log.info("skipped " + microsoftAccount.getEmail());
+                }
             } catch (InterruptedException | IOException e) {
                 log.error(e.getMessage());
             }

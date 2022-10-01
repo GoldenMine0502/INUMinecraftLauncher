@@ -24,6 +24,13 @@ public class MicrosoftTokenResponse {
     @SerializedName("refresh_token")
     private String refreshToken;
 
+    @SerializedName("code")
+    private String code;
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
     @Override
     public String toString() {
         return "TokenRequest{" +

@@ -29,7 +29,7 @@ public class MicrosoftAccount {
     private String minecraftUsername;
 
     @SerializedName("minecraft_uuid")
-    private String minecraftUUID;
+    private String minecraftUuid;
 
     @SerializedName("token_expire")
     private long tokenExpire;
@@ -39,6 +39,9 @@ public class MicrosoftAccount {
 
     @SerializedName("recent_accessed_ip")
     private String recentAccessedIp;
+
+    @SerializedName("recent_code")
+    private String recentCode;
 
     @SerializedName("recent_access_token")
     private String recentAccessToken;

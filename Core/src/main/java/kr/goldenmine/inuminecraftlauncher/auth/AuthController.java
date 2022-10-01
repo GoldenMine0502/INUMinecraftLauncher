@@ -55,7 +55,6 @@ public class AuthController {
         String idToken = allRequestParams.get("id_token");
         String error = allRequestParams.get("error");
         String errorDescription = allRequestParams.get("error_description");
-        System.out.println(allRequestParams);
 
         if(error == null && MicrosoftServiceImpl.state.equals(state)) {
             log.info("code: " + code);
