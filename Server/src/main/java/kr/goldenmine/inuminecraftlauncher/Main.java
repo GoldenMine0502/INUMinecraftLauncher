@@ -1,15 +1,13 @@
 package kr.goldenmine.inuminecraftlauncher;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
-import kr.goldenmine.inuminecraftlauncher.auth.MicrosoftService;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import kr.goldenmine.inuminecraftlauncher.login.AccountAutoLoginScheduler;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
-@SpringBootApplication
 public class Main {
     /*
     microsoft oauth
@@ -24,12 +22,11 @@ public class Main {
     https://stackoverflow.com/questions/14531917/launch-minecraft-from-command-line-username-and-password-as-prefix
      */
     public static void main(String[] args) throws IOException, ExecutionException, InterruptedException {
+//        MicrosoftServiceImpl.tryAllLogin();
         WebDriverManager.chromedriver().setup();
-//        SpringApplication.run(INUMinecraftLauncherMain.class, args);
+
         SpringApplicationBuilder builder = new SpringApplicationBuilder(CoreMain.class);
         builder.headless(false);
         ConfigurableApplicationContext context = builder.run(args);
-
-        MicrosoftService.tryAllLogin();
     }
 }

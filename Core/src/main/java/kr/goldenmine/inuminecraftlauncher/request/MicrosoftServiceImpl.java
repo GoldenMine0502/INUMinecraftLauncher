@@ -1,11 +1,15 @@
-package kr.goldenmine.inuminecraftlauncher.auth;
+package kr.goldenmine.inuminecraftlauncher.request;
 
+import kr.goldenmine.inuminecraftlauncher.auth.AuthController;
 import kr.goldenmine.inuminecraftlauncher.request.RetrofitServices;
 import kr.goldenmine.inuminecraftlauncher.request.models.MicrosoftTokenResponse;
 import kr.goldenmine.inuminecraftlauncher.request.models.minecraft.MinecraftLoginRequest;
 import kr.goldenmine.inuminecraftlauncher.request.models.minecraft.MinecraftLoginResponse;
 import kr.goldenmine.inuminecraftlauncher.request.models.minecraft.MinecraftProfileResponse;
 import kr.goldenmine.inuminecraftlauncher.request.models.xbox.*;
+import kr.goldenmine.inuminecraftlauncher.util.LoopUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.C;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -17,15 +21,18 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
-public class MicrosoftService {
-    private static String clientId;
-    private static String clientSecret;
+@Slf4j
+public class MicrosoftServiceImpl {
+    public static String clientId;
+    public static String clientSecret;
+    public static String state = "12345";
 
-    static {
-        try(BufferedReader reader = new BufferedReader(new FileReader("account/secrets.txt"))) {
+    public static void loadFromFile(File file) {
+        try(BufferedReader reader = new BufferedReader(new FileReader(file))) {
             clientId = reader.readLine();
             clientSecret = reader.readLine();
         } catch (IOException e) {
@@ -43,6 +50,8 @@ public class MicrosoftService {
                 String id = reader.readLine();
                 String password = reader.readLine();
 
+                AuthController.future = new CompletableFuture<>();
+
                 MicrosoftTokenResponse token = firstLogin(id, password);
                 System.out.println(token.getAccessToken());
                 System.out.println(token.getRefreshToken());
@@ -59,6 +68,7 @@ public class MicrosoftService {
     }
 
     public static synchronized MicrosoftTokenResponse firstLogin(String id, String password) throws InterruptedException, ExecutionException, IOException {
+        AuthController.future = new CompletableFuture<>();
         String scope = "XboxLive.signin offline_access";
 
         String url = RetrofitServices.MICROSOFT_SERVICE.requestAuthorizationCode(
@@ -68,54 +78,60 @@ public class MicrosoftService {
                 "http://localhost:20200/auth/microsoft",
                 "query",
                 scope,
-                "12345"
+                state
         ).request().url().url().toString();
 
         ChromeDriver driver = new ChromeDriver();
         // load login html
         driver.get(url);
-
         Thread.sleep(1000L);
 
-        waitWhile(() -> driver.findElements(By.tagName("input")).stream().filter(it -> "email".equals(it.getAttribute("type"))).findFirst(), 1000L);
+        try {
+            WebElement idElement = LoopUtil.waitWhile(() -> driver.findElements(By.tagName("input")).stream().filter(it -> "email".equals(it.getAttribute("type"))).findFirst(), 1000L, -1).get();
 
-        Optional<WebElement> optionalIdElement = driver.findElements(By.tagName("input")).stream().filter(it -> "email".equals(it.getAttribute("type"))).findFirst();
-        Optional<WebElement> optionalSubmitElement = driver.findElements(By.tagName("input")).stream().filter(it -> "submit".equals(it.getAttribute("type"))).findFirst();
+            Optional<WebElement> optionalSubmitElement = driver.findElements(By.tagName("input")).stream().filter(it -> "submit".equals(it.getAttribute("type"))).findFirst();
+            WebElement submitElement = optionalSubmitElement.get();
 
-        WebElement idElement = optionalIdElement.get();
-        WebElement submitElement = optionalSubmitElement.get();
+            idElement.sendKeys(id);
+            Thread.sleep(500L);
+            submitElement.click();
 
-        idElement.sendKeys(id);
-        submitElement.click();
+            WebElement passwordElement = LoopUtil.waitWhile(() -> driver.findElements(By.tagName("input")).stream().filter(it -> "password".equals(it.getAttribute("type"))).findFirst(), 1000L, -1).get();
+            submitElement = driver.findElements(By.tagName("input")).stream().filter(it -> "submit".equals(it.getAttribute("type"))).findFirst().get();
 
-        waitWhile(() -> driver.findElements(By.tagName("input")).stream().filter(it -> "password".equals(it.getAttribute("type"))).findFirst(), 1000L);
+            passwordElement.sendKeys(password);
+            Thread.sleep(500L);
+            submitElement.click();
 
-        WebElement passwordElement = driver.findElements(By.tagName("input")).stream().filter(it -> "password".equals(it.getAttribute("type"))).findFirst().get();
-        submitElement = driver.findElements(By.tagName("input")).stream().filter(it -> "submit".equals(it.getAttribute("type"))).findFirst().get();
+            Optional<WebElement> find = LoopUtil.waitWhile(() -> driver.findElements(By.tagName("input")).stream().filter(it -> "button".equals(it.getAttribute("type")) && "아니요".equals(it.getAttribute("value"))).findFirst(), 1000L, 10);
 
-        passwordElement.sendKeys(password);
-        submitElement.click();
+            if (find.isPresent()) {
+                WebElement nextButton = driver.findElements(By.tagName("input")).stream().filter(it -> "button".equals(it.getAttribute("type")) && "아니요".equals(it.getAttribute("value"))).findFirst().get();
+                nextButton.click();
+            }
 
-        waitWhile(() -> driver.findElements(By.tagName("input")).stream().filter(it -> "button".equals(it.getAttribute("type")) && "아니요".equals(it.getAttribute("value"))).findFirst(), 1000L);
+            String code = AuthController.future.get();
 
-        WebElement nextButton = driver.findElements(By.tagName("input")).stream().filter(it -> "button".equals(it.getAttribute("type")) && "아니요".equals(it.getAttribute("value"))).findFirst().get();
-        nextButton.click();
+            Response<MicrosoftTokenResponse> tokenResponse = RetrofitServices.MICROSOFT_SERVICE.requestAccessToken(
+                    "consumers",
+                    clientId,
+                    scope,
+                    code,
+                    "http://localhost:20200/auth/microsoft",
+                    "authorization_code",
+                    clientSecret
+            ).execute();
 
-        String code = AuthController.future.get();
+            log.info(tokenResponse.body().toString());
 
-        Response<MicrosoftTokenResponse> tokenResponse = RetrofitServices.MICROSOFT_SERVICE.requestAccessToken(
-                "consumers",
-                clientId,
-                scope,
-                code,
-                "http://localhost:20200/auth/microsoft",
-                "authorization_code",
-                clientSecret
-        ).execute();
+            return tokenResponse.body();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            driver.quit();
+        }
 
-        driver.quit();
-
-        return tokenResponse.body();
+        return null;
     }
 
     public static XBoxXstsResponse loginXbox(String accessToken) throws IOException {
@@ -155,24 +171,5 @@ public class MicrosoftService {
         MinecraftProfileResponse minecraftProfileResponse = RetrofitServices.MINECRAFT_LOGIN_SERVICE.getProfile(minecraftLoginResponse.getTokenType() + " " + minecraftLoginResponse.getAccessToken()).execute().body();
 
         return minecraftProfileResponse;
-    }
-
-    public static void waitWhile(Supplier<Optional<WebElement>> filter) throws InterruptedException {
-        waitWhile(filter, 1000L);
-    }
-
-    public static void waitWhile(Supplier<Optional<WebElement>> filter, long sleep) throws InterruptedException {
-        while(true) {
-            try {
-                Optional<WebElement> optionalPasswordElement = filter.get();
-
-                if(optionalPasswordElement.isPresent() && optionalPasswordElement.get().isDisplayed()) {
-                    break;
-                }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-            Thread.sleep(sleep);
-        }
     }
 }
