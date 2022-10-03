@@ -33,10 +33,8 @@ public class AccountAutoLoginScheduler extends Thread {
 
         sleepInMS = 900 * 1000L; // 토큰 expire의 1/4
 
-        if(!isAlive()) {
-            start();
-            log.info("scheduler started");
-        }
+        start();
+        log.info("AutoLoginScheduler is started.");
     }
 
     public void stopSafely() {
@@ -50,10 +48,9 @@ public class AccountAutoLoginScheduler extends Thread {
             try {
                 long start = System.currentTimeMillis();
                 tryAllLogin();
-
                 long time = (System.currentTimeMillis() - start);
 
-                log.info(time + " ms used for refreshing all accounts.");
+                log.info(time + " ms is used for accessing or refreshing all accounts.");
 
                 Thread.sleep(Math.max(sleepInMS - time, 1));
             } catch(InterruptedException ex) {
@@ -62,15 +59,13 @@ public class AccountAutoLoginScheduler extends Thread {
         }
     }
 
-    private synchronized void tryAllLogin() {
+    private void tryAllLogin() {
         List<MicrosoftAccount> list = microsoftAccountService.list();
         MicrosoftKey primary = microsoftKeyService.getPrimary();
 
-        final long CURRENT_TIME = System.currentTimeMillis();
-
         log.info("client id: " + primary.getClientId());
         log.info("client secret: " + primary.getClientSecret());
-        log.info("current time: " + CURRENT_TIME);
+        log.info("current time: " + System.currentTimeMillis());
 
         MicrosoftServiceImpl.clientId = primary.getClientId();
         MicrosoftServiceImpl.clientSecret = primary.getClientSecret();
@@ -80,13 +75,19 @@ public class AccountAutoLoginScheduler extends Thread {
 
         for(MicrosoftAccount microsoftAccount : list) {
             try {
-                log.info("trying to login " + microsoftAccount.getEmail() + ", " + (microsoftAccount.getTokenExpire() - CURRENT_TIME) / 1000 + "s remaining...");
+                final long INNER_TIME = System.currentTimeMillis();
+                log.info("trying to login " + microsoftAccount.getEmail() + ", " + (microsoftAccount.getTokenExpire() - INNER_TIME) / 1000 + "s remaining...");
                 MicrosoftTokenResponse microsoftTokenResponse;
-                // 1664643097505
-                // 1664638641095
 
-                if(microsoftAccount.getServerJoined() == 0 && CURRENT_TIME + sleepInMS * 1.5 >= microsoftAccount.getTokenExpire()) {
-                    final long INNER_TIME = System.currentTimeMillis();
+                boolean borrowedButNotUsed = microsoftAccount.getServerBorrowed() == 1
+                        && microsoftAccount.getServerJoined() == 0
+                        && INNER_TIME >= microsoftAccount.getServerBorrowedExpire();
+
+                boolean accessTimeExpired = INNER_TIME + sleepInMS * 1.5 >= microsoftAccount.getTokenExpire();
+
+                boolean quitted = microsoftAccount.getServerQuitted() == 1;
+
+                if(borrowedButNotUsed || (accessTimeExpired && quitted)) {
                     if(microsoftAccount.getRecentRefreshToken() == null) {
                         microsoftTokenResponse = LoopUtil.waitWhile(() -> {
                             try {
@@ -95,7 +96,7 @@ public class AccountAutoLoginScheduler extends Thread {
                                     return Optional.of(result);
                                 }
                             } catch (Exception ex) {
-                                log.warn(ex.getMessage());
+                                log.error(ex.getMessage(), ex);
                             }
                             return Optional.empty();
                         }, 1000L, 5).get();
@@ -104,7 +105,7 @@ public class AccountAutoLoginScheduler extends Thread {
                             try {
                                 return Optional.of(MicrosoftServiceImpl.refresh(microsoftAccount.getRecentRefreshToken()));
                             } catch (Exception ex) {
-                                log.warn(ex.getMessage());
+                                log.error(ex.getMessage(), ex);
                                 return Optional.empty();
                             }
                         }, 1000L, 5).get();
@@ -115,15 +116,25 @@ public class AccountAutoLoginScheduler extends Thread {
                         try {
                             return Optional.of(MicrosoftServiceImpl.loginXbox(microsoftTokenResponse.getAccessToken()));
                         } catch (IOException e) {
-                            log.warn(e.getMessage());
+                            log.error(e.getMessage(), e);
                             return Optional.empty();
                         }
                     }, 1000L, 5).get();
 
-                    MinecraftProfileResponse minecraftProfileResponse = MicrosoftServiceImpl.getMinecraftProfile(xBoxResponse.getToken(), xBoxResponse.getPreviousUhs());
+                    MinecraftProfileResponse minecraftProfileResponse = LoopUtil.waitWhile(() -> {
+                        try {
+                            return Optional.of(MicrosoftServiceImpl.getMinecraftProfile(xBoxResponse.getToken(), xBoxResponse.getPreviousUhs()));
+                        } catch (IOException e) {
+                            log.error(e.getMessage(), e);
+                            return Optional.empty();
+                        }
+                    }, 1000L, 5).get();
 
+                    microsoftAccount.setServerQuitted(1);
+                    microsoftAccount.setServerJoined(0);
+                    microsoftAccount.setServerBorrowedExpire(0);
+                    microsoftAccount.setServerBorrowed(0);
                     microsoftAccount.setTokenExpire(INNER_TIME + microsoftTokenResponse.getExpiresIn() * 1000L);
-                    microsoftAccount.setRecentCode(microsoftTokenResponse.getCode());
                     microsoftAccount.setRecentAccessToken(microsoftTokenResponse.getAccessToken());
                     microsoftAccount.setRecentRefreshToken(microsoftTokenResponse.getRefreshToken());
                     microsoftAccount.setRecentProfileToken(xBoxResponse.getToken());
@@ -131,14 +142,15 @@ public class AccountAutoLoginScheduler extends Thread {
                     microsoftAccount.setMinecraftUuid(minecraftProfileResponse.getId().toString());
 
                     microsoftAccountService.save(microsoftAccount);
+
                     log.info("logged " + microsoftAccount.getEmail() + ", " + microsoftAccount.getRecentProfileToken() + ", " + microsoftTokenResponse.getExpiresIn());
                 } else {
                     log.info("skipped " + microsoftAccount.getEmail());
                 }
 
                 Thread.sleep(sleepInMS / 1000L);
-            } catch (InterruptedException | IOException e) {
-                log.error(e.getMessage());
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
             }
         }
         microsoftAccountService.flush();

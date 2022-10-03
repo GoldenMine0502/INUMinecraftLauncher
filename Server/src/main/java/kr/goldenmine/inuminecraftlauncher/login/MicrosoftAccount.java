@@ -34,14 +34,20 @@ public class MicrosoftAccount {
     @SerializedName("token_expire")
     private long tokenExpire;
 
+    @SerializedName("server_borrowed")
+    private int serverBorrowed;
+
+    @SerializedName("server_borrowed_expire")
+    private long serverBorrowedExpire;
+
     @SerializedName("server_joined")
     private int serverJoined;
 
+    @SerializedName("server_quitted")
+    private int serverQuitted;
+
     @SerializedName("recent_accessed_ip")
     private String recentAccessedIp;
-
-    @SerializedName("recent_code")
-    private String recentCode;
 
     @SerializedName("recent_access_token")
     private String recentAccessToken;

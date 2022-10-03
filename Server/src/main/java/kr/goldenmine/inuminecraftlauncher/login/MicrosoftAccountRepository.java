@@ -20,13 +20,30 @@ public interface MicrosoftAccountRepository extends JpaRepository<MicrosoftAccou
           Date fromDate, @Param("toDate") Date toDate, @Param("tnxAmt") Double tnxAmt,@Param("tnxAmtFlag") String tnxAmtFlag);
      */
 
+    @Query("SELECT account FROM MicrosoftAccount account WHERE account.minecraftUsername = :username")
+    List<MicrosoftAccount> getAccountFromUserName(@Param("username") String userName);
+
+    @Query("SELECT COUNT(account) FROM MicrosoftAccount account")
+    int countTotalAccounts();
+
     @Query("SELECT COUNT(account) FROM MicrosoftAccount account WHERE account.recentAccessedIp = :current_ip AND account.serverJoined = 1")
     int countJoinedIps(@Param("current_ip") String ip);
 
-    @Query("SELECT COUNT(account) FROM MicrosoftAccount account WHERE account.tokenExpire <= :current_time")
+    /*
+                    boolean borrowedButNotUsed = microsoftAccount.getServerBorrowed() == 1
+                        && microsoftAccount.getServerJoined() == 0
+                        && microsoftAccount.getServerBorrowedExpire() <= INNER_TIME;
+
+                boolean accessTimeExpired = INNER_TIME + sleepInMS * 1.5 >= microsoftAccount.getTokenExpire();
+
+                boolean quitted = microsoftAccount.getServerQuitted() == 1;
+
+                                if(borrowedButNotUsed || (accessTimeExpired && quitted)) {
+     */
+    @Query("SELECT COUNT(account) FROM MicrosoftAccount account WHERE :current_time <= account.tokenExpire AND account.serverQuitted = 1")
     int countAvailableAccounts(@Param("current_time") long currentTime);
 
-    @Query("SELECT account FROM MicrosoftAccount account WHERE account.tokenExpire <= :current_time")
+    @Query("SELECT account FROM MicrosoftAccount account WHERE :current_time <= account.tokenExpire AND account.serverQuitted = 1")
     Page<MicrosoftAccount> getAvailableAccounts(@Param("current_time") long currentTime, Pageable pageable);
 
     /*

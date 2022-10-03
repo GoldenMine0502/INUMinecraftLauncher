@@ -68,7 +68,7 @@ public class MicrosoftServiceImpl {
         }
     }
 
-    public static synchronized MicrosoftTokenResponse refresh(String refreshToken) throws IOException {
+    public static MicrosoftTokenResponse refresh(String refreshToken) throws IOException {
         String scope = "XboxLive.signin offline_access";
 
         Response<MicrosoftTokenResponse> tokenResponse = RetrofitServices.MICROSOFT_SERVICE.requestRefreshToken(
@@ -142,8 +142,6 @@ public class MicrosoftServiceImpl {
 
             log.info(tokenResponse.body().toString());
 
-            tokenResponse.body().setCode(code);
-
             return tokenResponse.body();
         } catch (Exception ex) {
             log.error(ex.getMessage());
@@ -169,10 +167,14 @@ public class MicrosoftServiceImpl {
         String uhs = xboxResponse.getDisplayClaims().getUhs(null);
 
         // xsts login
-        XBoxXstsRequest xstsRequest = new XBoxXstsRequest("JWT", "rp://api.minecraftservices.com/", new XBoxXstsRequestProperties(
-                "RETAIL",
-                Collections.singletonList(xboxResponse.getToken())
-        ));
+        XBoxXstsRequest xstsRequest = new XBoxXstsRequest(
+                "JWT",
+                "rp://api.minecraftservices.com/",
+                new XBoxXstsRequestProperties(
+                        "RETAIL",
+                        Collections.singletonList(xboxResponse.getToken())
+                )
+        );
         XBoxXstsResponse xstsResponse = RetrofitServices.XBOX_LIVE_XSTS_SERVICE.authenticate(xstsRequest).execute().body();
 
         // check whether uhs is same

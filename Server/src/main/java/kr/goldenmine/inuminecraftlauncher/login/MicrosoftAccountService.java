@@ -31,7 +31,7 @@ public class MicrosoftAccountService {
         long currentTime = System.currentTimeMillis();
 
         // 조건에 맞는 게시글의 개수를 가져온다.
-        long qty = microsoftAccountRepository.countAvailableAccounts(currentTime);
+        int qty = microsoftAccountRepository.countAvailableAccounts(currentTime);
         // 가져온 개수 중 랜덤한 하나의 인덱스를 뽑는다.
         int idx = (int)(Math.random() * qty);
         // 페이징하여 하나만 추출해낸다.
@@ -43,5 +43,20 @@ public class MicrosoftAccountService {
         }
 
         return Optional.empty();
+    }
+
+    public int countAllAccounts() {
+        return microsoftAccountRepository.countTotalAccounts();
+    }
+
+    public int countAvailableAccounts() {
+        long currentTime = System.currentTimeMillis();
+        int qty = microsoftAccountRepository.countAvailableAccounts(currentTime);
+
+        return qty;
+    }
+
+    public List<MicrosoftAccount> getAccountFromUsername(String username) {
+        return microsoftAccountRepository.getAccountFromUserName(username);
     }
 }
