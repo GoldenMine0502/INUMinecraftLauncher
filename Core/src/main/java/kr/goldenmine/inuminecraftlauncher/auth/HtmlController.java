@@ -11,21 +11,13 @@ import org.springframework.web.servlet.ModelAndView;
 public class HtmlController {
 
     @RequestMapping(
-            value = "/onlyhtml",
-            method = RequestMethod.GET
-    )
-    @ResponseBody
-    public ModelAndView onlyHtml() {
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.setViewName("empty");
-        return modelAndView;
-    }
-    @RequestMapping(
             value = "/empty",
             method = RequestMethod.GET
     )
     @ResponseBody
-    public String empty() {
-        return "";
+    public ModelAndView empty() {
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.setViewName("empty");
+        return modelAndView;
     }
 }

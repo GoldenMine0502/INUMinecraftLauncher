@@ -6,4 +6,4 @@ public class MinecraftErrorResponse {
         public String error;
         public String errorMessage;
         public String developerMessage;
-    }
+}

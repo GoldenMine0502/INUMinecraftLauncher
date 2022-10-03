@@ -1,6 +1,7 @@
 package kr.goldenmine.inuminecraftlauncher.request;
 
 import com.google.gson.*;
+import kr.goldenmine.inuminecraftlauncher.util.UUIDUtil;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.converter.scalars.ScalarsConverterFactory;
@@ -9,7 +10,6 @@ import java.lang.reflect.Type;
 import java.util.UUID;
 
 public class RetrofitServices {
-
     public static final MicrosoftService MICROSOFT_SERVICE = new Retrofit.Builder()
             .baseUrl("https://login.microsoftonline.com/")
             .addConverterFactory(GsonConverterFactory.create())
@@ -50,16 +50,7 @@ public class RetrofitServices {
         public UUID deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
             String uuidString = json.getAsString();
 
-            // 0   ~  8,9~12,13~16,17~20,20~32
-            // af92e82a-610a-45e3-a443-ce07e9dafe4e
-            // 0f14d0ab-9605-4a62-a9e4-5ed26688389b
-            String convertedString = uuidString.substring(0, 8) + "-"
-                    + uuidString.substring(9, 12) + "-"
-                    + uuidString.substring(13, 16) + "-"
-                    + uuidString.substring(17, 20) + "-"
-                    + uuidString.substring(20);
-
-            return UUID.fromString(convertedString);
+            return UUIDUtil.getUUIDFromMinecraftRequestString(uuidString);
         }
 
     }

@@ -1,5 +1,6 @@
 package kr.goldenmine.inuminecraftlauncher.auth;
 
+import kr.goldenmine.inuminecraftlauncher.request.MicrosoftServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -8,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import retrofit2.http.GET;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -22,35 +22,27 @@ import java.util.concurrent.CompletableFuture;
 public class AuthController {
     public static CompletableFuture<String> future = new CompletableFuture<>();
 
-    @RequestMapping(
-            value = "/test",
-            method = RequestMethod.GET
-    )
-    public String test() {
-        return "test";
-    }
-
-    @RequestMapping(
-            value = "/authorization",
-            method = RequestMethod.GET
-    )
-    public ResponseEntity<?> authorization(
-            final HttpServletRequest req,
-            final HttpServletResponse res,
-            @RequestParam Map<String,String> allRequestParams) throws Exception {
-
-        String code = allRequestParams.get("code");
-        String state = allRequestParams.get("state");
-        String error = allRequestParams.get("error");
-        String errorDescription = allRequestParams.get("error_description");
-
-        System.out.println(code);
-        System.out.println(state);
-        System.out.println(error);
-        System.out.println(errorDescription);
-
-        return ResponseEntity.ok("");
-    }
+//    @RequestMapping(
+//            value = "/authorization",
+//            method = RequestMethod.GET
+//    )
+//    public ResponseEntity<?> authorization(
+//            final HttpServletRequest req,
+//            final HttpServletResponse res,
+//            @RequestParam Map<String,String> allRequestParams) throws Exception {
+//
+//        String code = allRequestParams.get("code");
+//        String state = allRequestParams.get("state");
+//        String error = allRequestParams.get("error");
+//        String errorDescription = allRequestParams.get("error_description");
+//
+//        System.out.println(code);
+//        System.out.println(state);
+//        System.out.println(error);
+//        System.out.println(errorDescription);
+//
+//        return ResponseEntity.ok("");
+//    }
 
     @RequestMapping(
             value = "/microsoft",
@@ -64,9 +56,7 @@ public class AuthController {
         String error = allRequestParams.get("error");
         String errorDescription = allRequestParams.get("error_description");
 
-        System.out.println(allRequestParams);
-
-        if(error == null) {
+        if(error == null && MicrosoftServiceImpl.state.equals(state)) {
             log.info("code: " + code);
             log.info("state: " + state);
             log.info("token: " + idToken);
@@ -77,29 +67,10 @@ public class AuthController {
         } else {
             log.warn(error);
             log.warn(errorDescription);
+            log.warn("original state: " + MicrosoftServiceImpl.state);
+            log.warn("state: " + state);
 
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error + "\n" + errorDescription);
         }
     }
-
-
-//    @RequestMapping(
-//            value = "/microsoftlogin",
-//            method = RequestMethod.GET
-//    )
-//    public String login() throws IOException {
-//        Response<ResponseBody> response = RetrofitServices.MICROSOFT_SERVICE.requestHTML(
-//                "common",
-//                "bdbbf15c-d072-4d57-be2c-c0702ad18be4",
-//                "code",
-//                "http://localhost:20200/auth/microsoft",
-//                "query",
-//                "XboxLive.signin offline_access",
-//                "12345"
-//        ).execute();
-//
-//        String html = response.body().string();
-//
-//        return html;
-//    }
 }

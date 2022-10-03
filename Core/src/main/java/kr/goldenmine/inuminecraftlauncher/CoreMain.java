@@ -9,7 +9,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 public class CoreMain {
     public static void main(String[] args) {
         WebDriverManager.chromedriver().setup();
-//        SpringApplication.run(INUMinecraftLauncherMain.class, args);
 
         SpringApplicationBuilder builder = new SpringApplicationBuilder(CoreMain.class);
         builder.headless(false);

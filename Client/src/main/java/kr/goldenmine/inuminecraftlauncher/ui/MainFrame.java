@@ -1,6 +1,6 @@
 package kr.goldenmine.inuminecraftlauncher.ui;
 
-import kr.goldenmine.inuminecraftlauncher.auth.MicrosoftService;
+import kr.goldenmine.inuminecraftlauncher.request.MicrosoftServiceImpl;
 import kr.goldenmine.inuminecraftlauncher.request.models.MicrosoftTokenResponse;
 import kr.goldenmine.inuminecraftlauncher.request.models.minecraft.MinecraftProfileResponse;
 import kr.goldenmine.inuminecraftlauncher.request.models.xbox.XBoxXstsResponse;
@@ -89,14 +89,14 @@ public class MainFrame extends JFrame {
             addLog("password: " + password);
 
             try {
-                MicrosoftTokenResponse tokenResponse = MicrosoftService.firstLogin(id, password);
+                MicrosoftTokenResponse tokenResponse = MicrosoftServiceImpl.firstLogin(id, password);
                 addLog("Access Token: " + tokenResponse.getAccessToken());
                 addLog("Refresh Token: " + tokenResponse.getRefreshToken());
 
-                XBoxXstsResponse xstsResponse = MicrosoftService.loginXbox(tokenResponse.getAccessToken());
+                XBoxXstsResponse xstsResponse = MicrosoftServiceImpl.loginXbox(tokenResponse.getAccessToken());
                 addLog("Profile Token: " + xstsResponse.getToken());
 
-                MinecraftProfileResponse profileResponse = MicrosoftService.getMinecraftProfile(xstsResponse.getToken(), xstsResponse.getPreviousUhs());
+                MinecraftProfileResponse profileResponse = MicrosoftServiceImpl.getMinecraftProfile(xstsResponse.getToken(), xstsResponse.getPreviousUhs());
                 addLog("UUID: " + profileResponse.getId());
                 addLog("Name: " + profileResponse.getName());
             } catch (InterruptedException | ExecutionException | IOException ex) {

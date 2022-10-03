@@ -11,7 +11,7 @@ public interface MicrosoftService {
     // client secret value: fOB8Q~rkevnm03wuXVUm2lwzHhNs1bJc5r-eMad-
     // client secret id: 1dc9653e-0cdb-4ad9-bac8-b5a191b64b28
 
-//    @FormUrlEncoded
+    //    @FormUrlEncoded
     @GET("{tenant}/oauth2/v2.0/authorize")
     Call<ResponseBody> requestAuthorizationCode(
             @Path("tenant") String tenant,
@@ -25,6 +25,8 @@ public interface MicrosoftService {
 //            @Field("code_challenge_method") String codeChallengeMethod
     );
 
+
+
     @FormUrlEncoded
     @POST("{tenant}/oauth2/v2.0/token")
     Call<MicrosoftTokenResponse> requestAccessToken(
@@ -34,6 +36,20 @@ public interface MicrosoftService {
             @Field("code") String code,
 //            @Query("response_type") String responseType,
             @Field("redirect_uri") String redirectURI,
+            @Field("grant_type") String grantType,
+            @Field("client_secret") String clientSecret
+//            @Field("code_challenge") String codeChallenge,
+//            @Field("code_challenge_method") String codeChallengeMethod
+    );
+
+    @FormUrlEncoded
+    @POST("{tenant}/oauth2/v2.0/token")
+    Call<MicrosoftTokenResponse> requestRefreshToken(
+            @Path("tenant") String tenant,
+            @Field("client_id") String clientId,
+            @Field("scope") String scope,
+//            @Query("response_type") String responseType,
+            @Field("refresh_token") String refreshToken,
             @Field("grant_type") String grantType,
             @Field("client_secret") String clientSecret
 //            @Field("code_challenge") String codeChallenge,
