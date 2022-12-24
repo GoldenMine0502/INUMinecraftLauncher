@@ -10,6 +10,14 @@ version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
+
+    maven {
+        url 'https://raw.githubusercontent.com/tomsik68/maven-repo/master/'
+    }
+
+    maven {
+        url 'https://oss.sonatype.org/content/groups/public/'
+    }
 }
 
 dependencies {
@@ -33,10 +41,10 @@ dependencies {
     // https://mvnrepository.com/artifact/io.github.bonigarcia/webdrivermanager
     implementation group: 'io.github.bonigarcia', name: 'webdrivermanager', version: '5.3.0'
 
-    // https://mvnrepository.com/artifact/com.h2database/h2
-    testImplementation group: 'com.h2database', name: 'h2', version: '2.1.214'
-    // https://mvnrepository.com/artifact/mysql/mysql-connector-java
-    implementation group: 'mysql', name: 'mysql-connector-java', version: '8.0.30'
+    implementation 'sk.tomsik68:mclauncher-api:0.3.1'
+//    implementation 'org.to2mbn:jmccc'
+
+    implementation files("libs/HMCL-3.5.SNAPSHOT.jar")
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'

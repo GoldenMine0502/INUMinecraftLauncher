@@ -4,12 +4,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @Service
 public class MicrosoftAccountService {
     private final MicrosoftAccountRepository microsoftAccountRepository;
+
+    private final List<Object> lockKeys = new ArrayList<>();
+    private final Object keyCreateLock = new Object();
 
     public MicrosoftAccountService(MicrosoftAccountRepository microsoftAccountRepository) {
         this.microsoftAccountRepository = microsoftAccountRepository;
@@ -25,6 +30,18 @@ public class MicrosoftAccountService {
 
     public void flush() {
         microsoftAccountRepository.flush();
+    }
+
+    public Object getLockKey(int id) {
+        if(id >= lockKeys.size()) {
+            synchronized (keyCreateLock) {
+                while(id < lockKeys.size()) {
+                    lockKeys.add(new Object());
+                }
+            }
+        }
+
+        return lockKeys.get(id);
     }
 
     public Optional<MicrosoftAccount> selectOneAccount() {
@@ -43,6 +60,14 @@ public class MicrosoftAccountService {
         }
 
         return Optional.empty();
+    }
+
+    public void synchronize(MicrosoftAccount account, Consumer<MicrosoftAccount> lambda) {
+        Object lockKey = getLockKey(account.getId());
+
+        synchronized (lockKey) {
+            lambda.accept(account);
+        }
     }
 
     public int countAllAccounts() {

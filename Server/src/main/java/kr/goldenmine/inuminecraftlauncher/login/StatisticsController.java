@@ -23,17 +23,21 @@ public class StatisticsController {
             method = RequestMethod.POST
     )
     public ResponseEntity<?> join(String username) {
-        List<MicrosoftAccount> accounts = microsoftAccountService.getAccountFromUsername(username);
+        final List<MicrosoftAccount> accounts = microsoftAccountService.getAccountFromUsername(username);
 
         if (accounts.size() > 0) {
-            MicrosoftAccount account = accounts.get(0);
+            final MicrosoftAccount account = accounts.get(0);
 
-            account.setServerJoined(1);
-            account.setServerQuitted(0);
+            if(account.getServerQuitted() == 1) {
+                account.setServerJoined(1);
+                account.setServerQuitted(0);
 
-            microsoftAccountService.save(account);
+                microsoftAccountService.save(account);
 
-            log.info("joined " + account.getMinecraftUsername() + " to minecraft server.");
+                log.info("joined " + account.getMinecraftUsername() + " to minecraft server.");
+            } else {
+                log.info("joined " + account.getMinecraftUsername() + ", but nothing changed.");
+            }
 
             return ResponseEntity.ok("");
         } else {
@@ -51,11 +55,15 @@ public class StatisticsController {
         if (accounts.size() > 0) {
             MicrosoftAccount account = accounts.get(0);
 
-            account.setServerQuitted(1);
+            if(account.getServerQuitted() == 0) {
+                account.setServerQuitted(1);
 
-            microsoftAccountService.save(account);
+                microsoftAccountService.save(account);
 
-            log.info("quitted " + account.getMinecraftUsername() + " to minecraft server.");
+                log.info("quitted " + account.getMinecraftUsername() + " to minecraft server.");
+            } else {
+                log.info("quitted " + account.getMinecraftUsername() + ", but nothing changed.");
+            }
 
             return ResponseEntity.ok("");
         } else {

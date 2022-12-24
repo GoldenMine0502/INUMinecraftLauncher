@@ -22,12 +22,12 @@ public class AccountController {
     private final MicrosoftAccountService microsoftAccountService;
     private final MicrosoftKeyService microsoftKeyService;
 
-//    private HashMap<String, Long> ipJoined = new HashMap<>();
-
     public AccountController(MicrosoftAccountService microsoftAccountService, MicrosoftKeyService microsoftKeyService) {
         this.microsoftAccountService = microsoftAccountService;
         this.microsoftKeyService = microsoftKeyService;
     }
+
+    private final Object randomAccountKey = new Object();
 
     @RequestMapping(
             value = "/random",
@@ -36,21 +36,32 @@ public class AccountController {
     public ResponseEntity<String> randomAccount(
             final HttpServletRequest req,
             final HttpServletResponse res) throws Exception {
-        Optional<MicrosoftAccount> accountOptional = microsoftAccountService.selectOneAccount();
+        final Optional<MicrosoftAccount> accountOptional = microsoftAccountService.selectOneAccount();
 
-        if(accountOptional.isPresent()) {
-            String remoteIp = req.getRemoteAddr();
-            MicrosoftAccount account = accountOptional.get();
-            account.setServerBorrowed(1);
-            account.setServerBorrowedExpire(System.currentTimeMillis() + 300 * 1000L);
-            account.setServerQuitted(0);
-            account.setRecentAccessedIp(remoteIp);
+        if (accountOptional.isPresent()) {
+            final String remoteIp = req.getRemoteAddr();
+            final MicrosoftAccount account = accountOptional.get();
 
-            microsoftAccountService.save(account);
+            final Object lockKey = microsoftAccountService.getLockKey(account.getId());
 
-            log.info("borrowed " + account.getMinecraftUsername() + " to " + remoteIp);
+            if(account.getServerBorrowed() == 0) {
+                synchronized (lockKey) {
+                    if(account.getServerBorrowed() == 0) {
+                        account.setServerBorrowed(1);
+                        account.setServerBorrowedExpire(System.currentTimeMillis() + 300 * 1000L);
+                        account.setServerQuitted(0);
+                        account.setRecentAccessedIp(remoteIp);
 
-            return ResponseEntity.ok(account.getRecentProfileToken());
+                        microsoftAccountService.save(account);
+
+                        log.info("borrowed " + account.getMinecraftUsername() + " to " + remoteIp);
+
+                        return ResponseEntity.ok(account.getRecentProfileToken());
+                    } else {
+                        return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
+                    }
+                }
+            }
         }
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
     }
@@ -64,8 +75,8 @@ public class AccountController {
             final HttpServletResponse res) {
         MicrosoftKey key = microsoftKeyService.getPrimary();
 
-        if(key != null) {
-             return ResponseEntity.ok(key);
+        if (key != null) {
+            return ResponseEntity.ok(key);
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
     }
